@@ -19,6 +19,9 @@ export function StudyRender() {
   useEffect(() => {
     window.setStudyAngle = setAngle
     document.body.style.background = 'transparent'
+    document.documentElement.style.background = 'transparent'
+    const root = document.getElementById('root')
+    if (root) root.style.background = 'transparent'
     return () => {
       delete window.setStudyAngle
     }

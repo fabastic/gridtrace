@@ -8,7 +8,7 @@ export interface Study {
   shot: StudyShot
 }
 
-export const STILL = { w: 525, h: 700 }
+export const STILL = { w: 420, h: 560 }
 
 
 export const STUDIES: Study[] = [
