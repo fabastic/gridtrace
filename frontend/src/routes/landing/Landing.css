@@ -880,9 +880,7 @@ html.lenis body {
   margin: 0;
 }
 .study__frame {
-  --rx: 0deg;
-  --ry: 0deg;
-  perspective: 900px;
+  perspective: 1200px;
   border-radius: 18px;
   border: 1px solid #2a2a2c;
   padding: 10px;
@@ -897,8 +895,8 @@ html.lenis body {
   aspect-ratio: 3 / 4;
   border-radius: 10px;
   overflow: hidden;
-  transform: rotateX(var(--rx)) rotateY(var(--ry));
-  transition: transform 500ms var(--ease-out);
+  transform: rotateX(calc(var(--my) * -3deg)) rotateY(calc(var(--mx) * 4deg));
+  transition: transform 700ms var(--ease-out);
 }
 .study--number .study__art {
   background:
@@ -1590,8 +1588,8 @@ html.lenis body {
   pointer-events: auto;
 }
 .tyreprog__btn {
-  width: 84px;
-  height: 84px;
+  width: 96px;
+  height: 96px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -1727,4 +1725,34 @@ html.lenis body {
 .footer__legal a {
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+.tyreprog__sidewall {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 900;
+  font-size: 4.1px;
+  letter-spacing: 0.08em;
+  fill: #ece7df;
+  opacity: 0.85;
+}
+.study__frame {
+  --mx: 0;
+  --my: 0;
+}
+.study__still {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+  transform: translate3d(calc(var(--mx) * 12px), calc(var(--my) * 9px), 0);
+  transition: transform 700ms var(--ease-out);
+  will-change: transform;
+}
+.study__numeral,
+.study__dims {
+  transform: translate3d(calc(var(--mx) * -6px), calc(var(--my) * -5px), 0);
+  transition: transform 700ms var(--ease-out);
 }

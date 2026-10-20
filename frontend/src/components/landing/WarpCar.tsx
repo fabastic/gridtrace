@@ -32,7 +32,8 @@ void main() {
   core = pow(core, 2.2);
   float tail = pow(along, 1.6);
   float pulse = 0.65 + 0.35 * smoothstep(0.2, 1.0, fract(along * 7.0 + uTime * 2.4));
-  float a = core * tail * pulse * uIntensity;
+  float head = smoothstep(1.0, 0.975, along);
+  float a = core * tail * pulse * head * uIntensity;
   vec3 col = mix(uColor, vec3(1.0), core * core * 0.55 * tail);
   gl_FragColor = vec4(col * a, a);
 }`
@@ -63,6 +64,13 @@ void main() {
   float lanes = band(z, 2.4, 0.05) * dash + band(z, -2.4, 0.05) * dash;
   float edges = band(z, 6.4, 0.07) + band(z, -6.4, 0.07);
   col += uLine * (lanes * 0.55 + edges * 0.35);
+  float az = abs(z);
+  float kerb = step(6.55, az) * step(az, 7.35);
+  float kb = step(0.5, fract(x / 1.4));
+  vec3 kerbCol = mix(vec3(0.62, 0.06, 0.05), vec3(0.78, 0.76, 0.72), kb);
+  col = mix(col, kerbCol * 0.55, kerb);
+  float sheen = exp(-pow(az - 0.8, 2.0) * 0.6) * smoothstep(-30.0, -2.0, vPos.x) * 0.05;
+  col += mix(uGlowA, uGlowB, step(0.0, -z)) * sheen;
   float underA = exp(-pow((z - 0.82) * 1.6, 2.0)) * smoothstep(-40.0, -1.0, vPos.x) * smoothstep(3.0, -1.0, vPos.x);
   float underB = exp(-pow((z + 0.82) * 1.6, 2.0)) * smoothstep(-40.0, -1.0, vPos.x) * smoothstep(3.0, -1.0, vPos.x);
   col += uGlowA * underA * 0.16 + uGlowB * underB * 0.16;
@@ -207,6 +215,151 @@ function Streaks({ colors, speed, near }: { colors: string[]; speed: MutableRefO
   )
 }
 
+const SPARKS = 260
+const EMITTERS: [number, number, number][] = [
+  [-2.0, 0.03, 0.62],
+  [-2.0, 0.03, -0.62],
+  [-1.1, 0.02, 0.3],
+  [-1.1, 0.02, -0.3],
+  [-2.55, 0.05, 0],
+]
+
+interface Spark {
+  p: THREE.Vector3
+  v: THREE.Vector3
+  life: number
+  max: number
+  len: number
+  c: THREE.Color
+}
+
+function Sparks({ speed, boost }: { speed: MutableRefObject<number>; boost: MutableRefObject<number> }) {
+  const mesh = useRef<THREE.InstancedMesh>(null)
+  const pool = useMemo<Spark[]>(
+    () =>
+      Array.from({ length: SPARKS }, () => ({
+        p: new THREE.Vector3(),
+        v: new THREE.Vector3(),
+        life: 0,
+        max: 0,
+        len: 0,
+        c: new THREE.Color(),
+      })),
+    [],
+  )
+  const palette = useMemo(() => ['#fff6d6', '#ffd27a', '#ffb347', '#ff7a1a'].map((c) => new THREE.Color(c)), [])
+  const dummy = useMemo(() => new THREE.Object3D(), [])
+  const dir = useMemo(() => new THREE.Vector3(), [])
+  const xAxis = useMemo(() => new THREE.Vector3(1, 0, 0), [])
+  const tmp = useMemo(() => new THREE.Color(), [])
+  const acc = useRef(0)
+  const next = useRef(0)
+
+  useFrame((state, dt) => {
+    const m = mesh.current
+    if (!m) return
+    const d = Math.min(dt, 0.05)
+    const rate = 70 + boost.current * 420 + (Math.sin(state.clock.elapsedTime * 3.7) > 0.92 ? 600 : 0)
+    acc.current += rate * d
+    while (acc.current >= 1) {
+      acc.current -= 1
+      const s = pool[next.current]
+      next.current = (next.current + 1) % SPARKS
+      const e = EMITTERS[Math.floor(Math.random() * EMITTERS.length)]
+      s.p.set(e[0] + (Math.random() - 0.5) * 0.3, e[1], e[2] + (Math.random() - 0.5) * 0.25)
+      const k = speed.current / 40
+      s.v.set(-(4 + Math.random() * 9) * k, 0.6 + Math.random() * 2.6, (Math.random() - 0.5) * 2.4)
+      s.max = 0.25 + Math.random() * 0.45
+      s.life = s.max
+      s.len = 0.08 + Math.random() * 0.22
+      s.c.copy(palette[Math.floor(Math.random() * palette.length)])
+    }
+    for (let i = 0; i < SPARKS; i++) {
+      const s = pool[i]
+      if (s.life <= 0) {
+        dummy.scale.setScalar(0)
+        dummy.updateMatrix()
+        m.setMatrixAt(i, dummy.matrix)
+        continue
+      }
+      s.life -= d
+      s.v.y -= 9.8 * d
+      s.p.addScaledVector(s.v, d)
+      if (s.p.y < 0.005) {
+        s.p.y = 0.005
+        s.v.y *= -0.35
+        s.v.x *= 0.7
+      }
+      const t = Math.max(0, s.life / s.max)
+      dir.copy(s.v).normalize()
+      dummy.position.copy(s.p)
+      dummy.quaternion.setFromUnitVectors(xAxis, dir)
+      const stretch = s.len * (0.4 + s.v.length() * 0.08)
+      dummy.scale.set(stretch, 0.012 * (0.5 + t), 0.012 * (0.5 + t))
+      dummy.updateMatrix()
+      m.setMatrixAt(i, dummy.matrix)
+      tmp.copy(s.c).multiplyScalar(1.2 + t * 2.2)
+      m.setColorAt(i, tmp)
+    }
+    m.instanceMatrix.needsUpdate = true
+    if (m.instanceColor) m.instanceColor.needsUpdate = true
+  })
+
+  return (
+    <instancedMesh ref={mesh} args={[undefined, undefined, SPARKS]} frustumCulled={false}>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshBasicMaterial toneMapped={false} transparent blending={THREE.AdditiveBlending} depthWrite={false} />
+    </instancedMesh>
+  )
+}
+
+const HAZE = 46
+
+function Haze({ speed, color }: { speed: MutableRefObject<number>; color: string }) {
+  const points = useRef<THREE.Points>(null)
+  const data = useMemo(() => {
+    const pos = new Float32Array(HAZE * 3)
+    const seed = Array.from({ length: HAZE }, (_, i) => ({ side: i % 2 ? 1 : -1, t: Math.random() }))
+    return { pos, seed }
+  }, [])
+  const tex = useMemo(() => flareTex, [])
+
+  useFrame((_, dt) => {
+    const p = points.current
+    if (!p) return
+    const d = Math.min(dt, 0.05)
+    const k = speed.current / 40
+    data.seed.forEach((s, i) => {
+      s.t += d * (0.9 + k * 0.6)
+      if (s.t > 1) s.t -= 1
+      const x = -2.2 - s.t * 7
+      const y = 0.15 + s.t * 0.7
+      const z = s.side * (0.8 + s.t * 0.9) + Math.sin(i * 12.3 + s.t * 6) * 0.15
+      data.pos.set([x, y, z], i * 3)
+    })
+    const attr = p.geometry.getAttribute('position') as THREE.BufferAttribute
+    attr.needsUpdate = true
+  })
+
+  return (
+    <points ref={points} frustumCulled={false}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[data.pos, 3]} />
+      </bufferGeometry>
+      <pointsMaterial
+        map={tex}
+        color={color}
+        size={1.6}
+        sizeAttenuation
+        transparent
+        opacity={0.09}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
+  )
+}
+
 function Road({ team, offset }: { team: TeamTheme; offset: MutableRefObject<number> }) {
   const mat = useMemo(
     () =>
@@ -240,6 +393,7 @@ function Rig({ team, progress }: { team: TeamTheme; progress: MutableRefObject<n
   const speed = useRef(40)
   const offset = useRef(0)
   const glow = useRef(1)
+  const boostRef = useRef(0)
   const near = useRef(1)
   const look = useMemo(() => new THREE.Vector3(), [])
   const right = useMemo(() => new THREE.Vector3(), [])
@@ -254,6 +408,7 @@ function Rig({ team, progress }: { team: TeamTheme; progress: MutableRefObject<n
     time.current += d * (speed.current / 40)
     offset.current += d * speed.current
     glow.current = 0.8 + boost * 0.7
+    boostRef.current = boost
 
     const swing = THREE.MathUtils.smoothstep(p, 0.55, 0.95)
     near.current = 1 - THREE.MathUtils.smoothstep(swing, 0.05, 0.4)
@@ -296,6 +451,8 @@ function Rig({ team, progress }: { team: TeamTheme; progress: MutableRefObject<n
       <pointLight position={[-1.5, 0.15, 0]} color={rear} intensity={6} distance={4} />
       <pointLight position={[1.5, 0.15, 0]} color={front} intensity={4} distance={3.5} />
       <Road team={team} offset={offset} />
+      <Sparks speed={speed} boost={boostRef} />
+      <Haze speed={speed} color={rear} />
       <Streaks colors={[rear, front, '#ffb15c', '#ffffff']} speed={speed} near={near} />
       {WHEELS.map((w) => (
         <Trail key={`${w.x}${w.z}`} wall={!w.front} x={w.x} z={w.z} color={w.front ? front : rear} timeRef={time} intensity={glow} />

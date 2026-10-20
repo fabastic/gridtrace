@@ -1,60 +1,26 @@
-import { Suspense, lazy, useEffect, useRef, type PointerEvent } from 'react'
+import { useEffect, useRef, type PointerEvent } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useTeam } from '../../theme/useTeam'
 import { useInView } from '../../hooks/useInView'
-import type { StudyShot } from './StudyCanvas'
+import { STUDIES, type Study } from './studyShots'
 
 gsap.registerPlugin(ScrollTrigger)
 
-const StudyCanvas = lazy(() => import('./StudyCanvas'))
-
-interface Study {
-  id: string
-  title: string
-  note: string
-  variant: 'number' | 'blueprint' | 'rim'
-  shot: StudyShot
-}
-
-const STUDIES: Study[] = [
-  {
-    id: '01',
-    title: 'Number',
-    note: 'Toon shade, ink outline',
-    variant: 'number',
-    shot: { mode: 'toon', camera: [5, 7, 5], rotation: [0, 0.5, 0], zoom: 70, line: '#111111' },
-  },
-  {
-    id: '02',
-    title: 'Blueprint',
-    note: 'Edge pass, plan view',
-    variant: 'blueprint',
-    shot: { mode: 'blueprint', camera: [3, 9, 4], rotation: [0, -0.45, 0], zoom: 64, line: '#ffffff' },
-  },
-  {
-    id: '03',
-    title: 'Rim light',
-    note: 'Two-tone studio, low key',
-    variant: 'rim',
-    shot: { mode: 'standard', camera: [-1.6, 1.1, 7], rotation: [0, 0.2, 0], zoom: 74, line: '#111', lights: 'rim' },
-  },
-]
-
 function StudyCard({ study, index }: { study: Study; index: number }) {
   const { team } = useTeam()
-  const [ref, inView] = useInView<HTMLDivElement>('300px', true)
+  const [ref, , seen] = useInView<HTMLDivElement>('600px', true)
 
   const onMove = (e: PointerEvent<HTMLDivElement>) => {
     const r = e.currentTarget.getBoundingClientRect()
     const x = (e.clientX - r.left) / r.width - 0.5
     const y = (e.clientY - r.top) / r.height - 0.5
-    e.currentTarget.style.setProperty('--rx', `${-y * 8}deg`)
-    e.currentTarget.style.setProperty('--ry', `${x * 10}deg`)
+    e.currentTarget.style.setProperty('--mx', x.toFixed(3))
+    e.currentTarget.style.setProperty('--my', y.toFixed(3))
   }
   const onLeave = (e: PointerEvent<HTMLDivElement>) => {
-    e.currentTarget.style.setProperty('--rx', '0deg')
-    e.currentTarget.style.setProperty('--ry', '0deg')
+    e.currentTarget.style.setProperty('--mx', '0')
+    e.currentTarget.style.setProperty('--my', '0')
   }
 
   return (
@@ -63,10 +29,14 @@ function StudyCard({ study, index }: { study: Study; index: number }) {
         <div className="study__art">
           {study.variant === 'number' && <span className="study__numeral">{team.number}</span>}
           {study.variant === 'blueprint' && <span className="study__dims mono">PLAN · EDGE PASS</span>}
-          {inView && (
-            <Suspense fallback={null}>
-              <StudyCanvas team={team} shot={study.shot} />
-            </Suspense>
+          {seen && (
+            <img
+              className="study__still"
+              src={`/studies/${team.id}-${study.id}.webp`}
+              alt={`${study.title} study of the ${team.label.toLowerCase()} car`}
+              decoding="async"
+              draggable={false}
+            />
           )}
           {study.variant === 'rim' && <span className="study__halftone" />}
         </div>
@@ -112,8 +82,8 @@ export function Studies() {
           <em>studies</em>
         </h2>
         <p className="studies__intro">
-          One car, three render passes: toon ink, blueprint edges and a low-key rim light. Repainted live in the
-          active team colours with every sponsor mark stripped out.
+          One car, three render passes: toon ink, blueprint edges and a low-key rim light. Repainted in the active
+          team colours with every sponsor mark stripped out.
         </p>
       </header>
       <div className="studies__grid">

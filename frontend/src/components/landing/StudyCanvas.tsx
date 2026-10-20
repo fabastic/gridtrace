@@ -14,7 +14,7 @@ export interface StudyShot {
   lights?: 'flat' | 'rim'
 }
 
-export default function StudyCanvas({ team, shot }: { team: TeamTheme; shot: StudyShot }) {
+export default function StudyCanvas({ team, shot, angle = 0 }: { team: TeamTheme; shot: StudyShot; angle?: number }) {
   const livery = useMemo(() => liveryFrom(team.livery), [team])
   return (
     <Canvas
@@ -39,7 +39,7 @@ export default function StudyCanvas({ team, shot }: { team: TeamTheme; shot: Stu
           <directionalLight position={[3, 6, 4]} intensity={2.2} />
         </>
       )}
-      <group rotation={shot.rotation}>
+      <group rotation={[shot.rotation[0], shot.rotation[1] + angle, shot.rotation[2]]}>
         <Suspense fallback={null}>
           <RealCar livery={livery} mode={shot.mode} line={shot.line} castShadow={false} />
         </Suspense>

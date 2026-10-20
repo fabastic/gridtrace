@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { scrollToTarget } from '../../hooks/useSmoothScroll'
+import { WheelArt } from './WheelArt'
 
 const SECTIONS = [
   { id: 'top', label: 'Start' },
@@ -15,6 +16,7 @@ const C = 2 * Math.PI * R
 
 export function TyreProgress({ visible }: { visible: boolean }) {
   const wheel = useRef<SVGGElement>(null)
+  const wheelB = useRef<SVGGElement>(null)
   const arc = useRef<SVGCircleElement>(null)
   const [active, setActive] = useState(0)
   const [open, setOpen] = useState(false)
@@ -42,7 +44,9 @@ export function TyreProgress({ visible }: { visible: boolean }) {
         target += (y - lastY) * 0.35
         lastY = y
         angle += (target - angle) * 0.12
-        if (wheel.current) wheel.current.style.transform = `rotate(${angle.toFixed(2)}deg)`
+        const t = `rotate(${angle.toFixed(2)}deg)`
+        if (wheel.current) wheel.current.style.transform = t
+        if (wheelB.current) wheelB.current.style.transform = t
       }
       if (!reduced && Math.abs(target - angle) > 0.05) raf = requestAnimationFrame(tick)
       else raf = 0
@@ -75,8 +79,6 @@ export function TyreProgress({ visible }: { visible: boolean }) {
     els.forEach((el) => io.observe(el))
     return () => io.disconnect()
   }, [])
-
-  const spokes = Array.from({ length: 10 }, (_, i) => i * 36)
 
   return (
     <div className={`tyreprog${visible && past ? ' is-visible' : ''}${open ? ' is-open' : ''}`}>
@@ -125,19 +127,7 @@ export function TyreProgress({ visible }: { visible: boolean }) {
             strokeDashoffset={C}
             transform="rotate(-90 60 60)"
           />
-          <g ref={wheel} className="tyreprog__wheel">
-            <circle cx="60" cy="60" r="40" fill="#141414" />
-            <circle cx="60" cy="60" r="40" fill="none" stroke="#000" strokeWidth="1.5" />
-            <circle cx="60" cy="60" r="31.5" fill="none" stroke="var(--team-primary)" strokeWidth="2.2" />
-            <circle cx="60" cy="60" r="36" fill="none" stroke="var(--team-primary)" strokeWidth="1" strokeDasharray="7 3.5" opacity="0.85" />
-            <circle cx="60" cy="60" r="28" fill="#2a2b2e" />
-            {spokes.map((a) => (
-              <path key={a} d="M58.6 36 L61.4 36 L63 55 L57 55 Z" fill="#45474c" transform={`rotate(${a} 60 60)`} />
-            ))}
-            <circle cx="60" cy="60" r="9" fill="var(--team-primary)" />
-            <circle cx="60" cy="60" r="4.5" fill="#121212" />
-            <circle cx="60" cy="31" r="1.6" fill="#f1ece4" />
-          </g>
+          <WheelArt spinA={wheel} spinB={wheelB} />
           {SECTIONS.map((_, i) => {
             const a = ((i / SECTIONS.length) * 360 - 90) * (Math.PI / 180)
             return (

@@ -11,27 +11,6 @@ import type { TeamTheme } from '../../theme/teams'
 
 export type GarageView = 'car' | 'engine'
 
-const WALL_WHITE = '#efece6'
-const FLOOR = '#cfcac2'
-
-function Bulbs({ from, to, count, y }: { from: [number, number]; to: [number, number]; count: number; y: number }) {
-  return (
-    <>
-      {Array.from({ length: count }, (_, i) => {
-        const t = count === 1 ? 0.5 : i / (count - 1)
-        const x = from[0] + (to[0] - from[0]) * t
-        const z = from[1] + (to[1] - from[1]) * t
-        return (
-          <mesh key={i} position={[x, y, z]}>
-            <sphereGeometry args={[0.09, 12, 10]} />
-            <meshStandardMaterial color="#fff6e5" emissive="#ffe9c2" emissiveIntensity={2.4} />
-          </mesh>
-        )
-      })}
-    </>
-  )
-}
-
 function Cone({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
@@ -130,79 +109,224 @@ function WallScreen({ position, rotation, color, w = 2.6, h = 1.5 }: {
   )
 }
 
+function LightBar({ position, length, axis = 'x', color = '#fff3e0', intensity = 2.6 }: {
+  position: [number, number, number]
+  length: number
+  axis?: 'x' | 'z'
+  color?: string
+  intensity?: number
+}) {
+  const args: [number, number, number] = axis === 'x' ? [length, 0.06, 0.06] : [0.06, 0.06, length]
+  return (
+    <mesh position={position}>
+      <boxGeometry args={args} />
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={intensity} toneMapped={false} />
+    </mesh>
+  )
+}
+
+function floorTexture(primary: string) {
+  const c = document.createElement('canvas')
+  c.width = c.height = 1024
+  const g = c.getContext('2d')!
+  g.fillStyle = '#1a1917'
+  g.fillRect(0, 0, 1024, 1024)
+  for (let i = 0; i < 9000; i++) {
+    const v = 20 + Math.random() * 18
+    g.fillStyle = `rgba(${v},${v - 1},${v - 2},0.5)`
+    g.fillRect(Math.random() * 1024, Math.random() * 1024, 2, 2)
+  }
+  g.strokeStyle = 'rgba(255,255,255,0.045)'
+  g.lineWidth = 2
+  for (let i = 0; i <= 1024; i += 128) {
+    g.beginPath()
+    g.moveTo(i, 0)
+    g.lineTo(i, 1024)
+    g.stroke()
+    g.beginPath()
+    g.moveTo(0, i)
+    g.lineTo(1024, i)
+    g.stroke()
+  }
+  g.strokeStyle = primary
+  g.globalAlpha = 0.14
+  g.lineWidth = 2.5
+  for (let k = 0; k < 9; k++) {
+    g.beginPath()
+    for (let a = 0; a <= Math.PI * 2 + 0.05; a += 0.05) {
+      const r = 60 + k * 46 + Math.sin(a * 3 + k) * 18 + Math.cos(a * 5 - k * 0.7) * 10
+      const x = 760 + Math.cos(a) * r * 1.2
+      const y = 260 + Math.sin(a) * r
+      if (a === 0) g.moveTo(x, y)
+      else g.lineTo(x, y)
+    }
+    g.stroke()
+  }
+  g.globalAlpha = 1
+  const tex = new THREE.CanvasTexture(c)
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.anisotropy = 8
+  return tex
+}
+
+function wallTexture(primary: string, number: number) {
+  const c = document.createElement('canvas')
+  c.width = 2048
+  c.height = 840
+  const g = c.getContext('2d')!
+  g.fillStyle = '#141312'
+  g.fillRect(0, 0, 2048, 840)
+  for (let y = 0; y < 840; y += 6) {
+    g.fillStyle = y % 12 ? 'rgba(255,255,255,0.012)' : 'rgba(0,0,0,0.12)'
+    g.fillRect(0, y, 2048, 3)
+  }
+  g.save()
+  g.fillStyle = primary
+  g.globalAlpha = 0.9
+  for (let i = 0; i < 3; i++) {
+    g.beginPath()
+    const x = 1300 + i * 170
+    g.moveTo(x, 840)
+    g.lineTo(x + 120, 840)
+    g.lineTo(x + 420, 300)
+    g.lineTo(x + 300, 300)
+    g.closePath()
+    g.fill()
+  }
+  g.restore()
+  g.font = '900 520px "Archivo Variable", Archivo, sans-serif'
+  g.textBaseline = 'alphabetic'
+  g.lineWidth = 6
+  g.strokeStyle = 'rgba(241,236,228,0.16)'
+  g.strokeText(String(number), 120, 700)
+  g.font = '800 54px "Archivo Variable", Archivo, sans-serif'
+  g.fillStyle = 'rgba(241,236,228,0.55)'
+  g.fillText('GRIDTRACE · PITWALL', 120, 160)
+  g.fillStyle = primary
+  g.fillRect(120, 186, 220, 10)
+  const tex = new THREE.CanvasTexture(c)
+  tex.colorSpace = THREE.SRGBColorSpace
+  return tex
+}
+
+function sideWallTexture(primary: string) {
+  const c = document.createElement('canvas')
+  c.width = 1800
+  c.height = 840
+  const g = c.getContext('2d')!
+  g.fillStyle = '#171615'
+  g.fillRect(0, 0, 1800, 840)
+  g.fillStyle = primary
+  g.fillRect(0, 520, 1800, 320)
+  g.fillStyle = 'rgba(0,0,0,0.85)'
+  for (let x = 0; x < 1800; x += 14) {
+    for (let y = 520; y < 840; y += 14) {
+      const r = ((y - 520) / 320) * 3.4
+      g.beginPath()
+      g.arc(x + ((y / 14) % 2) * 7, y, r, 0, Math.PI * 2)
+      g.fill()
+    }
+  }
+  g.fillStyle = 'rgba(241,236,228,0.05)'
+  for (let x = 0; x < 1800; x += 300) g.fillRect(x, 0, 2, 520)
+  const tex = new THREE.CanvasTexture(c)
+  tex.colorSpace = THREE.SRGBColorSpace
+  return tex
+}
+
 function Room({ team }: { team: TeamTheme }) {
   const c = team.colors
+  const floorTex = useMemo(() => floorTexture(c.primary), [c.primary])
+  const backTex = useMemo(() => wallTexture(c.primary, team.number), [c.primary, team.number])
+  const sideTex = useMemo(() => sideWallTexture(c.primary), [c.primary])
+
   return (
     <group>
       <mesh position={[0, -0.2, 0]} receiveShadow>
         <boxGeometry args={[11, 0.4, 9]} />
-        <meshStandardMaterial color={FLOOR} roughness={0.35} metalness={0.05} />
+        <meshStandardMaterial attach="material-0" color="#121110" />
+        <meshStandardMaterial attach="material-1" color="#121110" />
+        <meshStandardMaterial attach="material-2" map={floorTex} roughness={0.38} metalness={0.15} />
+        <meshStandardMaterial attach="material-3" color="#0d0c0b" />
+        <meshStandardMaterial attach="material-4" color={c.primary} emissive={c.primary} emissiveIntensity={0.25} />
+        <meshStandardMaterial attach="material-5" color="#121110" />
       </mesh>
       <mesh position={[0, -0.42, 0]}>
         <boxGeometry args={[11.4, 0.1, 9.4]} />
-        <meshStandardMaterial color="#1b1a19" />
+        <meshStandardMaterial color="#0a0a09" />
       </mesh>
+
       {[-1, 1].map((s) => (
-        <mesh key={s} position={[0.4, 0.004, s * 1.55]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[6.4, 0.08]} />
-          <meshBasicMaterial color={c.primary} />
+        <mesh key={s} position={[0.4, 0.004, s * 1.65]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[6.6, 0.07]} />
+          <meshBasicMaterial color={c.primary} toneMapped={false} />
         </mesh>
       ))}
-      <mesh position={[3.6, 0.004, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[0.08, 3.18]} />
-        <meshBasicMaterial color={c.primary} />
+      {[-2.9, 3.7].map((x) => (
+        <mesh key={x} position={[x, 0.004, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.07, 3.37]} />
+          <meshBasicMaterial color={c.primary} toneMapped={false} />
+        </mesh>
+      ))}
+      {Array.from({ length: 9 }, (_, i) => (
+        <mesh key={i} position={[-2.4 + i * 0.75, 0.005, 2.35]} rotation={[-Math.PI / 2, 0, Math.PI / 4]}>
+          <planeGeometry args={[0.06, 0.6]} />
+          <meshBasicMaterial color="#f1ece4" transparent opacity={0.35} />
+        </mesh>
+      ))}
+      <mesh position={[0.4, 0.003, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[7, 4.2]} />
+        <meshBasicMaterial map={glowTex} color={c.primary} transparent opacity={0.35} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
 
       <mesh position={[0, 2.25, -4.62]} receiveShadow castShadow>
         <boxGeometry args={[11, 4.5, 0.24]} />
-        <meshStandardMaterial color={WALL_WHITE} roughness={0.8} />
+        <meshStandardMaterial attach="material-0" color="#121110" />
+        <meshStandardMaterial attach="material-1" color="#121110" />
+        <meshStandardMaterial attach="material-2" color="#1b1a19" />
+        <meshStandardMaterial attach="material-3" color="#121110" />
+        <meshStandardMaterial attach="material-4" map={backTex} roughness={0.85} />
+        <meshStandardMaterial attach="material-5" color="#121110" />
       </mesh>
-      <mesh position={[0, 0.9, -4.49]}>
-        <boxGeometry args={[11, 1.8, 0.02]} />
-        <meshStandardMaterial color={c.primary} roughness={0.6} />
-      </mesh>
-      <mesh position={[0, 1.84, -4.48]}>
-        <boxGeometry args={[11, 0.06, 0.02]} />
-        <meshStandardMaterial color={c.ink} />
-      </mesh>
-      <Bulbs from={[-5, -4.4]} to={[5, -4.4]} count={9} y={4.2} />
+      <LightBar position={[0, 4.3, -4.42]} length={10.6} />
+      <LightBar position={[0, 0.08, -4.44]} length={10.6} color={c.primary} intensity={3} />
 
       <mesh position={[-5.62, 2.25, 0]} receiveShadow castShadow>
         <boxGeometry args={[0.24, 4.5, 9.24]} />
-        <meshStandardMaterial color={c.primary} roughness={0.7} />
+        <meshStandardMaterial attach="material-0" map={sideTex} roughness={0.85} />
+        <meshStandardMaterial attach="material-1" color="#121110" />
+        <meshStandardMaterial attach="material-2" color="#1b1a19" />
+        <meshStandardMaterial attach="material-3" color="#121110" />
+        <meshStandardMaterial attach="material-4" color="#121110" />
+        <meshStandardMaterial attach="material-5" color="#121110" />
       </mesh>
-      <mesh position={[-5.49, 3.3, 0]}>
-        <boxGeometry args={[0.02, 0.5, 9]} />
-        <meshStandardMaterial color={WALL_WHITE} />
-      </mesh>
-      <Bulbs from={[-5.4, -3.8]} to={[-5.4, 3.8]} count={7} y={4.2} />
+      <LightBar position={[-5.44, 4.3, 0]} length={9} axis="z" />
+      <LightBar position={[-5.46, 0.08, 0]} length={9} axis="z" color={c.primary} intensity={3} />
 
-      <WallScreen position={[-1.6, 2.7, -4.48]} color={c.primary} />
-      <WallScreen position={[1.4, 2.7, -4.48]} color={c.secondary} w={1.8} h={1.5} />
+      <WallScreen position={[-1.6, 2.75, -4.48]} color={c.primary} />
+      <WallScreen position={[1.4, 2.75, -4.48]} color={c.secondary} w={1.8} h={1.5} />
 
       <group position={[-4.9, 0, 0.6]}>
         <mesh position={[0, 0.5, 0]} castShadow receiveShadow>
           <boxGeometry args={[1.0, 1.0, 5.2]} />
-          <meshStandardMaterial color={WALL_WHITE} roughness={0.5} />
+          <meshStandardMaterial color="#1c1b1a" roughness={0.6} />
         </mesh>
-        {[-1.6, 0, 1.6].map((z) => (
-          <mesh key={z} position={[0.51, 0.55, z]}>
-            <boxGeometry args={[0.02, 0.12, 1.2]} />
-            <meshStandardMaterial color={c.primary} />
-          </mesh>
-        ))}
+        <mesh position={[0.51, 0.86, 0]}>
+          <boxGeometry args={[0.02, 0.06, 5.2]} />
+          <meshStandardMaterial color={c.primary} emissive={c.primary} emissiveIntensity={1.2} toneMapped={false} />
+        </mesh>
         <mesh position={[0, 1.02, 0]}>
           <boxGeometry args={[1.06, 0.04, 5.26]} />
-          <meshStandardMaterial color="#232325" roughness={0.3} />
+          <meshStandardMaterial color="#0f0f10" roughness={0.25} metalness={0.4} />
         </mesh>
         {[-1.4, 1.2].map((z) => (
           <group key={z} position={[-0.1, 1.42, z]} rotation={[0, Math.PI / 2, 0]}>
             <RoundedBox args={[1.1, 0.7, 0.05]} radius={0.02} castShadow>
-              <meshStandardMaterial color="#111" />
+              <meshStandardMaterial color="#0c0c0c" />
             </RoundedBox>
             <mesh position={[0, 0, 0.03]}>
               <planeGeometry args={[1.0, 0.6]} />
-              <meshStandardMaterial color="#0a0b0f" emissive={z < 0 ? c.secondary : c.primary} emissiveIntensity={0.25} />
+              <meshStandardMaterial color="#05060a" emissive={z < 0 ? c.secondary : c.primary} emissiveIntensity={0.55} />
             </mesh>
             <mesh position={[0, -0.45, -0.05]}>
               <boxGeometry args={[0.06, 0.2, 0.06]} />
@@ -215,15 +339,15 @@ function Room({ team }: { team: TeamTheme }) {
         <group key={z} position={[-4.0, 0, z]}>
           <mesh position={[0, 0.36, 0]} castShadow>
             <cylinderGeometry args={[0.03, 0.03, 0.72, 8]} />
-            <meshStandardMaterial color="#888" metalness={0.8} roughness={0.3} />
+            <meshStandardMaterial color="#777" metalness={0.8} roughness={0.3} />
           </mesh>
           <mesh position={[0, 0.74, 0]} castShadow>
             <cylinderGeometry args={[0.22, 0.2, 0.08, 18]} />
-            <meshStandardMaterial color={WALL_WHITE} />
+            <meshStandardMaterial color={c.primary} roughness={0.5} />
           </mesh>
           <mesh position={[0, 0.01, 0]}>
             <cylinderGeometry args={[0.2, 0.2, 0.02, 18]} />
-            <meshStandardMaterial color="#555" metalness={0.8} roughness={0.3} />
+            <meshStandardMaterial color="#333" metalness={0.8} roughness={0.3} />
           </mesh>
         </group>
       ))}
@@ -231,12 +355,16 @@ function Room({ team }: { team: TeamTheme }) {
       <group position={[4.1, 0, -3.7]}>
         <mesh position={[0, 1.3, -0.25]} castShadow receiveShadow>
           <boxGeometry args={[2.4, 2.6, 0.3]} />
-          <meshStandardMaterial color="#1b1b1d" roughness={0.5} />
+          <meshStandardMaterial color="#0e0d0d" roughness={0.5} />
+        </mesh>
+        <mesh position={[0, 1.3, -0.09]}>
+          <planeGeometry args={[2.2, 2.4]} />
+          <meshBasicMaterial map={glowTex} color={c.primary} transparent opacity={0.5} blending={THREE.AdditiveBlending} depthWrite={false} />
         </mesh>
         {[0.55, 1.45].map((y) => (
           <mesh key={y} position={[0, y, 0.05]} castShadow>
             <boxGeometry args={[2.3, 0.05, 0.5]} />
-            <meshStandardMaterial color="#f5f3ef" roughness={0.3} />
+            <meshStandardMaterial color="#d9d4cc" roughness={0.2} metalness={0.1} transparent opacity={0.75} />
           </mesh>
         ))}
         <Trophy position={[-0.7, 0.58, 0.05]} color="#d4a53c" />
@@ -244,15 +372,12 @@ function Room({ team }: { team: TeamTheme }) {
         <Trophy position={[0.7, 0.58, 0.05]} color="#c27b47" />
         <Trophy position={[-0.45, 1.48, 0.05]} color="#d4a53c" scale={0.85} />
         <Trophy position={[0.45, 1.48, 0.05]} color="#d9dadc" scale={0.85} />
-        <mesh position={[0, 2.45, 0.11]}>
-          <boxGeometry args={[2.0, 0.16, 0.02]} />
-          <meshBasicMaterial color={c.primary} />
-        </mesh>
+        <LightBar position={[0, 2.5, 0.1]} length={2.2} color={c.primary} intensity={3} />
       </group>
 
       <TyreStack position={[4.6, 0, 1.2]} color="#e10600" />
       <TyreStack position={[4.6, 0, 2.1]} color="#ffd12e" count={3} />
-      <TyreStack position={[3.7, 0, 3.6]} color="#f2f2f2" count={2} />
+      <TyreStack position={[3.9, 0, 3.7]} color="#f2f2f2" count={2} />
       <Cone position={[1.2, 0, 3.7]} />
       <Cone position={[2.1, 0, 3.9]} />
       <Cone position={[-0.4, 0, 3.8]} />
@@ -260,12 +385,12 @@ function Room({ team }: { team: TeamTheme }) {
       <group position={[-3.4, 0, 3.4]}>
         <mesh position={[0, 0.45, 0]} castShadow>
           <boxGeometry args={[0.9, 0.9, 0.6]} />
-          <meshStandardMaterial color="#d7261e" roughness={0.4} />
+          <meshStandardMaterial color="#1e1d1c" roughness={0.4} metalness={0.3} />
         </mesh>
         {[0.2, 0.45, 0.7].map((y) => (
           <mesh key={y} position={[0, y, 0.31]}>
-            <boxGeometry args={[0.8, 0.02, 0.02]} />
-            <meshStandardMaterial color="#8a1410" />
+            <boxGeometry args={[0.8, 0.03, 0.02]} />
+            <meshStandardMaterial color={c.primary} emissive={c.primary} emissiveIntensity={0.6} />
           </mesh>
         ))}
         {[-0.35, 0.35].map((x) =>
@@ -284,6 +409,20 @@ function Room({ team }: { team: TeamTheme }) {
     </group>
   )
 }
+
+const glowTex = (() => {
+  if (typeof document === 'undefined') return null
+  const c = document.createElement('canvas')
+  c.width = c.height = 128
+  const g = c.getContext('2d')!
+  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64)
+  grad.addColorStop(0, 'rgba(255,255,255,1)')
+  grad.addColorStop(0.5, 'rgba(255,255,255,0.35)')
+  grad.addColorStop(1, 'rgba(255,255,255,0)')
+  g.fillStyle = grad
+  g.fillRect(0, 0, 128, 128)
+  return new THREE.CanvasTexture(c)
+})()
 
 function useTween(target: number, speed = 4) {
   const [v, setV] = useState(target)
@@ -375,10 +514,14 @@ export default function GarageScene({
       onPointerCancel={() => (drag.current = null)}
     >
       <color attach="background" args={[team.colors.dark]} />
-      <hemisphereLight args={['#fff4e6', '#3a2a1e', 0.6]} />
+      <fog attach="fog" args={[team.colors.dark, 30, 60]} />
+      <hemisphereLight args={['#ffe9d2', '#1a120c', 0.25]} />
+      <spotLight position={[0.4, 7, 0.5]} angle={0.55} penumbra={0.7} intensity={140} color="#ffe6c8" castShadow shadow-mapSize={[1024, 1024]} />
+      <spotLight position={[-3, 3.5, -4]} angle={0.9} penumbra={1} intensity={60} color={team.colors.primary} />
+      <spotLight position={[5, 3, 4]} angle={0.9} penumbra={1} intensity={30} color={team.colors.secondary} />
       <directionalLight
         position={[6, 12, 8]}
-        intensity={2.2}
+        intensity={0.7}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-9}
@@ -387,8 +530,7 @@ export default function GarageScene({
         shadow-camera-bottom={-9}
         shadow-bias={-0.0004}
       />
-      <pointLight position={[0, 3.6, 0]} intensity={18} color="#ffe2b8" distance={9} />
-      <StudioEnv tint={team.colors.primary} intensity={0.5} />
+      <StudioEnv tint={team.colors.primary} intensity={0.35} />
       <Room team={team} />
       <group position={[0.4, 0, 0]} rotation={[0, 0, 0]}>
         <Suspense fallback={null}>
