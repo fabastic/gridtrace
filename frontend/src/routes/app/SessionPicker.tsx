@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type EventSummary, type SeasonSummary } from '../../api/client'
+import { TrackThumb, VaultMap } from '../../components/app/VaultMap'
 import './SessionPicker.css'
 
 interface EventsState {
@@ -14,6 +15,7 @@ export function SessionPicker({ onPick }: { onPick: (sessionKey: number) => void
   const [eventsState, setEventsState] = useState<EventsState | null>(null)
   const [seasonsError, setSeasonsError] = useState<string | null>(null)
   const [loadingSeasons, setLoadingSeasons] = useState(true)
+  const [hover, setHover] = useState<number | null>(null)
 
   const effectiveSeason =
     season ?? (seasons.length > 0 ? Math.max(...seasons.map((s) => s.year)) : null)
@@ -66,77 +68,85 @@ export function SessionPicker({ onPick }: { onPick: (sessionKey: number) => void
 
   const loading = loadingSeasons || loadingEvents
 
+  const pick = (ev: EventSummary) => {
+    if (ev.ingested && ev.session_key != null) onPick(ev.session_key)
+  }
+
   return (
-    <div className="picker">
+    <div className="picker vault">
       <div className="picker__inner">
-        <h2 className="picker__title">Choose a session</h2>
-        <p className="picker__intro">
-          GRIDTRACE replays historical race data. Every number on screen is traceable to a
-          cached API response — nothing is simulated. Seasons with cached coverage replay
-          fully; other events show their available data channels honestly.
-        </p>
-        {!loadingSeasons && seasons.length > 0 && (
-          <div className="picker__season-row">
-            <label className="picker__item-meta" htmlFor="picker-season">
-              SEASON
-            </label>
-            <select
-              id="picker-season"
-              className="picker__season"
-              value={effectiveSeason ?? ''}
-              onChange={(e) => setSeason(Number(e.target.value))}
-            >
+        <p className="mod__kicker">Pitwall module</p>
+        <div className="vault__head">
+          <h2 className="mod__title">
+            Race <em>Vault</em>
+          </h2>
+          {!loadingSeasons && seasons.length > 0 && (
+            <div className="seg vault__seasons" role="tablist" aria-label="Season">
               {seasons.map((s) => (
-                <option key={s.year} value={s.year}>
+                <button
+                  key={s.year}
+                  type="button"
+                  role="tab"
+                  aria-selected={s.year === effectiveSeason}
+                  className={s.year === effectiveSeason ? 'is-on' : ''}
+                  onClick={() => setSeason(s.year)}
+                >
                   {s.year}
-                </option>
+                  <small className="mono"> {s.race_count}</small>
+                </button>
               ))}
-            </select>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
+        <p className="mod__sub">
+          Every cached session, ready to replay. Pick a round on the map or a card below. Every number in the replay
+          traces back to cached timing data.
+        </p>
         {loading && <div className="picker__state mono">LOADING…</div>}
         {error && (
           <div className="picker__state picker__state--error mono" role="alert">
             FAILED TO LOAD CATALOG · {error}
           </div>
         )}
-        {!loading && !error && events.length === 0 && (
-          <div className="picker__state mono">NO EVENTS FOR THIS SEASON</div>
-        )}
+        {!loading && !error && events.length === 0 && <div className="picker__state mono">NO EVENTS FOR THIS SEASON</div>}
         {!loading && !error && events.length > 0 && (
-          <ul className="picker__list">
-            {events.map((ev) => {
-              const key = ev.session_key
-              const canPick = ev.ingested && key != null
-              return (
-                <li key={`${ev.season}-${ev.round}`}>
-                  <button
-                    type="button"
-                    className={`picker__item${canPick ? '' : ' picker__item--disabled'}`}
-                    disabled={!canPick}
-                    onClick={() => canPick && key != null && onPick(key)}
-                  >
-                    <span className="picker__item-name">
-                      {ev.round}. {ev.event_name}
-                    </span>
-                    <span className="picker__item-meta mono">
-                      {ev.circuit_name} · {ev.country}
-                    </span>
-                    <span className="picker__item-side">
-                      {canPick ? (
-                        <>
-                          <span className="badge badge-replay">REPLAY</span>
-                          <span className="picker__availability mono">CACHED COVERAGE</span>
-                        </>
-                      ) : (
-                        <span className="picker__availability mono">NOT INGESTED</span>
-                      )}
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
+          <>
+            <div className="vault__map">
+              <VaultMap events={events} hover={hover} onHover={setHover} onPick={pick} />
+            </div>
+            <ul className="vault__grid">
+              {events.map((ev) => {
+                const ok = ev.ingested && ev.session_key != null
+                return (
+                  <li key={`${ev.season}-${ev.round}`}>
+                    <button
+                      type="button"
+                      className={`vcard${ok ? '' : ' is-off'}${hover === ev.round ? ' is-on' : ''}`}
+                      disabled={!ok}
+                      onPointerEnter={() => setHover(ev.round)}
+                      onPointerLeave={() => setHover(null)}
+                      onClick={() => pick(ev)}
+                    >
+                      <span className="vcard__top">
+                        <b className="mono">{String(ev.round).padStart(2, '0')}</b>
+                        <span>
+                          <strong>{ev.event_name.replace(' Grand Prix', ' GP')}</strong>
+                          <small className="mono">{ev.circuit_name} · {ev.country}</small>
+                        </span>
+                      </span>
+                      <span className="vcard__thumb">
+                        <TrackThumb sessionKey={ok ? ev.session_key : null} />
+                      </span>
+                      <span className="vcard__foot mono">
+                        <span>{ev.date_start.slice(0, 10)}</span>
+                        <span className={ok ? 'is-ok' : ''}>{ok ? 'REPLAY ↗' : 'NOT INGESTED'}</span>
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </>
         )}
       </div>
     </div>

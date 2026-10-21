@@ -477,30 +477,48 @@ export function PredictionView({ sessionKey }: { sessionKey: number }) {
               label="Improvement vs baseline"
             />
           </Stats>
-          <table className="mod__table">
-            <thead>
-              <tr>
-                <th>Driver</th>
-                <th>Grid</th>
-                <th>Predicted</th>
-                <th>Actual</th>
-                <th>Hit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.entries.map((e, i) => (
-                <tr key={e.driver_number} className="mod__row" style={rowStyle(i)}>
-                  <td className="name">{e.name_acronym}</td>
-                  <td>{e.grid ?? '—'}</td>
-                  <td>{e.predicted_finish}</td>
-                  <td>{e.actual_finish ?? '—'}</td>
-                  <td className={e.predicted_finish === e.actual_finish ? 'mod__pos' : 'mod__neg'}>
-                    {e.predicted_finish === e.actual_finish ? '✓' : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="pred">
+            <div className="pred__head mono">
+              <span>DRIVER</span>
+              <span>GRID</span>
+              <span>PREDICTED vs ACTUAL · 1 → 20</span>
+              <span>ERROR</span>
+            </div>
+            {[...data.entries]
+              .sort((x, y) => (x.actual_finish ?? 99) - (y.actual_finish ?? 99))
+              .map((e, i) => {
+                const err = e.actual_finish != null ? e.predicted_finish - e.actual_finish : null
+                const pos = (p: number) => `${((p - 1) / 19) * 100}%`
+                return (
+                  <div key={e.driver_number} className="pred__row" style={rowStyle(i)}>
+                    <span className="pred__name">{e.name_acronym}</span>
+                    <span className="mono pred__grid">P{e.grid ?? '—'}</span>
+                    <span className="pred__lane">
+                      {e.actual_finish != null && (
+                        <i
+                          className="pred__link"
+                          style={{
+                            left: pos(Math.min(e.predicted_finish, e.actual_finish)),
+                            width: `${(Math.abs(e.predicted_finish - e.actual_finish) / 19) * 100}%`,
+                          }}
+                        />
+                      )}
+                      <b className="pred__dot pred__dot--p" style={{ left: pos(e.predicted_finish) }} title={`Predicted P${e.predicted_finish}`} />
+                      {e.actual_finish != null && (
+                        <b className="pred__dot pred__dot--a" style={{ left: pos(e.actual_finish) }} title={`Actual P${e.actual_finish}`} />
+                      )}
+                    </span>
+                    <span className={`mono pred__err${err === 0 ? ' is-hit' : ''}`}>
+                      {err == null ? '—' : err === 0 ? 'HIT' : err > 0 ? `+${err}` : err}
+                    </span>
+                  </div>
+                )
+              })}
+            <div className="pred__legend mono">
+              <span><b className="pred__dot pred__dot--p" /> PREDICTED</span>
+              <span><b className="pred__dot pred__dot--a" /> ACTUAL</span>
+            </div>
+          </div>
         </>
       )}
     </ModuleShell>

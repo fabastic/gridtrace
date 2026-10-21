@@ -110,10 +110,13 @@ def _local_events(year: int) -> list[EventSummary]:
 
 @app.get("/api/seasons", response_model=list[SeasonSummary])
 def list_seasons():
+    local = _local_seasons()
+    if local:
+        return local
     try:
         return catalog.list_seasons()
     except Exception:
-        return _local_seasons()
+        return local
 
 
 @app.get("/api/seasons/{year}/events", response_model=CatalogPage)

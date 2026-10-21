@@ -763,3 +763,55 @@ html {
   .app .cl__row { grid-template-columns: 30px 1fr 1fr; }
   .app .cl__gain, .app .cl__fin, .app .cl__legend { display: none; }
 }
+
+/* ===== Race Vault ===== */
+.app .vault .picker__inner { max-width: 1400px; }
+.app .vault__head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
+.app .vault__seasons button small { opacity: 0.6; font-size: 9px; }
+.app .vault__map { margin: 24px 0; border-radius: 20px; overflow: hidden; border: 1px solid var(--gt-border); background: #0a0908; }
+.app .vmap { display: block; width: 100%; height: auto; }
+.app .vmap__land { fill: var(--team-primary); opacity: 0.85; }
+.app .vmap__pin { cursor: pointer; }
+.app .vmap__pin circle { fill: #fff; stroke: #0a0908; stroke-width: 1.5; transition: r 200ms; }
+.app .vmap__pin rect { fill: #0a0908; stroke: rgba(255,255,255,0.7); stroke-width: 0.8; }
+.app .vmap__pin text { fill: #fff; font-family: var(--font-mono); font-size: 8px; text-anchor: middle; }
+.app .vmap__pin.is-on rect { fill: #fff; }
+.app .vmap__pin.is-on text { fill: #0a0908; font-weight: 700; }
+.app .vmap__pin.is-off { opacity: 0.4; cursor: default; }
+.app .vault__grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.app .vcard { width: 100%; display: grid; gap: 10px; padding: 12px; text-align: left; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--team-primary) 35%, var(--gt-border)); background: linear-gradient(rgba(241,236,228,0.04) 1px, transparent 1px) 0 0 / 14px 14px, linear-gradient(90deg, rgba(241,236,228,0.04) 1px, transparent 1px) 0 0 / 14px 14px, var(--gt-surface-1); color: var(--gt-text-primary); transition: transform 300ms cubic-bezier(0.16,1,0.3,1), border-color 200ms; }
+.app .vcard:hover:not(:disabled), .app .vcard.is-on { transform: translateY(-3px); border-color: var(--team-primary); }
+.app .vcard.is-off { opacity: 0.45; cursor: not-allowed; }
+.app .vcard__top { display: flex; gap: 10px; align-items: flex-start; }
+.app .vcard__top b { color: var(--team-primary); font-size: 18px; font-weight: 600; }
+.app .vcard__top span { display: grid; }
+.app .vcard__top strong { font-family: var(--font-display); font-stretch: 116%; font-weight: 900; font-size: 15px; text-transform: uppercase; letter-spacing: -0.01em; }
+.app .vcard__top small { font-size: 9px; letter-spacing: 0.12em; color: var(--gt-text-muted); text-transform: uppercase; }
+.app .vcard__thumb { display: block; aspect-ratio: 100 / 60; }
+.app .vthumb { width: 100%; height: 100%; }
+.app .vthumb path { fill: none; stroke: #e9e6e1; stroke-width: 2.2; stroke-linejoin: round; }
+.app .vcard__foot { display: flex; justify-content: space-between; font-size: 9px; letter-spacing: 0.14em; color: var(--gt-text-muted); }
+.app .vcard__foot .is-ok { color: var(--team-primary); }
+
+.app .vmap { max-height: 380px; }
+.app .vault__map { display: grid; place-items: center; }
+
+.app .vault__grid li { display: flex; }
+.app .vcard { height: 100%; grid-template-rows: auto 1fr auto; }
+
+/* ===== Prediction ===== */
+.app .pred { display: grid; gap: 4px; margin-top: 24px; }
+.app .pred__head, .app .pred__row { display: grid; grid-template-columns: 80px 56px 1fr 60px; gap: 16px; align-items: center; }
+.app .pred__head { font-size: 9px; letter-spacing: 0.18em; color: var(--gt-text-muted); padding-bottom: 6px; border-bottom: 1px solid var(--gt-border-faint); }
+.app .pred__row { height: 30px; }
+.app .pred__name { font-family: var(--font-display); font-stretch: 116%; font-weight: 900; font-size: 14px; }
+.app .pred__grid { font-size: 11px; color: var(--gt-text-muted); }
+.app .pred__lane { position: relative; height: 14px; margin: 0 7px; background: linear-gradient(90deg, var(--gt-border-faint) 1px, transparent 1px) 0 0 / calc(100% / 19) 100%; border-radius: 3px; }
+.app .pred__link { position: absolute; top: 6px; height: 2px; background: color-mix(in srgb, var(--team-paper) 35%, transparent); }
+.app .pred__dot { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; display: inline-block; }
+.app .pred__legend .pred__dot { position: relative; top: auto; margin: 0 6px 0 0; vertical-align: middle; }
+.app .pred__dot--p { border: 2px solid var(--team-primary); background: var(--gt-canvas); }
+.app .pred__dot--a { background: var(--team-paper); }
+.app .pred__err { font-size: 12px; text-align: right; color: var(--gt-text-secondary); }
+.app .pred__err.is-hit { color: var(--gt-success); font-weight: 600; }
+.app .pred__legend { display: flex; gap: 20px; font-size: 9px; letter-spacing: 0.18em; color: var(--gt-text-muted); margin-top: 10px; }

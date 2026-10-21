@@ -28,7 +28,7 @@ export function VaultMap({ events, hover, onHover, onPick }: {
   }, [])
 
   return (
-    <svg className="vmap" viewBox={`0 0 ${W} ${H}`} aria-label="Season map">
+    <svg className="vmap" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" aria-label="Season map">
       <defs>
         <pattern id="vmap-grid" width="16" height="16" patternUnits="userSpaceOnUse">
           <path d="M16 0H0V16" fill="none" stroke="rgba(241,236,228,0.05)" />
