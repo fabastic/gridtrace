@@ -4,12 +4,9 @@ import ClickSpark from '../../components/reactbits/ClickSpark/ClickSpark'
 import { Preloader } from '../../components/landing/Preloader'
 import { Nav } from '../../components/landing/Nav'
 import { Hero } from '../../components/landing/Hero'
-import { Manifesto } from '../../components/landing/Manifesto'
-import { Warp } from '../../components/landing/Warp'
+import { Marquee } from '../../components/landing/Marquee'
 import { TyreProgress } from '../../components/landing/TyreProgress'
-import { Studies } from '../../components/landing/Studies'
 import { Garage } from '../../components/landing/Garage'
-import { Pitwall } from '../../components/landing/Pitwall'
 import { Footer } from '../../components/landing/Footer'
 import { useSmoothScroll } from '../../hooks/useSmoothScroll'
 import { useTeam } from '../../theme/useTeam'
@@ -37,11 +34,8 @@ export function Landing() {
         <Nav />
         <main id="main">
           <Hero ready={ready} />
-          <Manifesto />
-          <Warp />
-          <Studies />
+          <Marquee />
           <Garage />
-          <Pitwall />
         </main>
         <Footer />
         <TyreProgress visible={ready} />

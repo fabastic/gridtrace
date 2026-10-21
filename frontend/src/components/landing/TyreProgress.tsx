@@ -4,11 +4,8 @@ import { WheelArt } from './WheelArt'
 
 const SECTIONS = [
   { id: 'top', label: 'Start' },
-  { id: 'manifesto', label: 'Thesis' },
-  { id: 'warp', label: 'Replay' },
-  { id: 'studies', label: 'Studies' },
   { id: 'garage', label: 'Garage' },
-  { id: 'pitwall', label: 'Pitwall' },
+  { id: 'finish', label: 'Finish' },
 ]
 
 const R = 46

@@ -7,11 +7,8 @@ import { useTeam } from '../../theme/useTeam'
 import { Mark } from './Mark'
 
 const LINKS = [
-  { href: '#manifesto', label: 'Thesis', idx: '01' },
-  { href: '#warp', label: 'Replay', idx: '02' },
-  { href: '#studies', label: 'Studies', idx: '03' },
-  { href: '#garage', label: 'Garage', idx: '04' },
-  { href: '#pitwall', label: 'Pitwall', idx: '05' },
+  { href: '#garage', label: 'Garage', idx: '01' },
+  { href: '#finish', label: 'Finish', idx: '02' },
 ]
 
 export function Nav() {

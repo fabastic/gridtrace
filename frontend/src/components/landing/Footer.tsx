@@ -8,7 +8,7 @@ import { Mark } from './Mark'
 export function Footer() {
   const { team } = useTeam()
   return (
-    <footer className="footer">
+    <footer id="finish" className="footer">
       <p className="footer__pre">The race is still telling its story.</p>
       <div className="footer__card">
         <Topo seed={9} color="var(--team-primary)" opacity={0.16} />

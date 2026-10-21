@@ -18,7 +18,7 @@ export function Garage() {
     <section id="garage" className="garage" aria-labelledby="garage-title">
       <header className="garage__head">
         <div>
-          <p className="garage__kicker mono">04 · THE GARAGE</p>
+          <p className="garage__kicker mono">01 · THE GARAGE</p>
           <h2 id="garage-title" className="garage__title">
             Open the <em>garage.</em>
           </h2>

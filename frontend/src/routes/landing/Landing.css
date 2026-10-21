@@ -504,7 +504,8 @@ html.lenis body {
 .hero__line {
   display: block;
   overflow: hidden;
-  padding-bottom: 0.04em;
+  padding: 0.02em 0.12em 0.12em 0.14em;
+  margin: -0.02em -0.12em -0.12em -0.14em;
 }
 .hero__line > span {
   display: block;
@@ -1755,4 +1756,12 @@ html.lenis body {
 .study__dims {
   transform: translate3d(calc(var(--mx) * -6px), calc(var(--my) * -5px), 0);
   transition: transform 700ms var(--ease-out);
+}
+
+.marquee {
+  margin-top: -40px;
+  margin-bottom: 40px;
+}
+.garage {
+  padding-top: clamp(120px, 16vh, 180px);
 }

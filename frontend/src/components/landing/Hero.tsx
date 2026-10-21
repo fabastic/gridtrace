@@ -103,7 +103,7 @@ export function Hero({ ready }: { ready: boolean }) {
               </svg>
             </Link>
           </Magnet>
-          <button type="button" className="btn btn--ghost btn--lg" onClick={() => scrollToTarget('#manifesto')}>
+          <button type="button" className="btn btn--ghost btn--lg" onClick={() => scrollToTarget('#garage')}>
             Explore a race
           </button>
         </div>
